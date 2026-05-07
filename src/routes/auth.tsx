@@ -29,11 +29,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms) { toast.error("Please accept the Terms & Privacy Policy to continue"); return; }
     const r = schema.safeParse({ email, password });
     if (!r.success) { toast.error(r.error.issues[0].message); return; }
     setBusy(true);
@@ -57,6 +59,7 @@ function AuthPage() {
   };
 
   const google = async () => {
+    if (!acceptTerms) { toast.error("Please accept the Terms & Privacy Policy to continue"); return; }
     setBusy(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -110,10 +113,33 @@ function AuthPage() {
                 </button>
               </div>
             </div>
-            <Button type="submit" disabled={busy} className="w-full rounded-full bg-gradient-primary shadow-elegant">
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+                required
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/legal/$slug" params={{ slug: "terms" }} target="_blank" className="font-semibold text-primary hover:underline">Terms &amp; Conditions</Link>
+                {" "}and{" "}
+                <Link to="/legal/$slug" params={{ slug: "privacy" }} target="_blank" className="font-semibold text-primary hover:underline">Privacy Policy</Link>.
+              </span>
+            </label>
+            <Button type="submit" disabled={busy || !acceptTerms} className="w-full rounded-full bg-gradient-primary shadow-elegant">
               {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
             </Button>
           </form>
+
+          <button
+            type="button"
+            onClick={() => nav({ to: "/" })}
+            className="mt-3 w-full rounded-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            Skip login for now →
+          </button>
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "signin" ? "Don't have an account? " : "Already a member? "}
