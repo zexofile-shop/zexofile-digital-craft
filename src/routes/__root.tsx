@@ -80,10 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "Zexofile Shop" },
       { name: "theme-color", content: "#1e40af" },
       { property: "og:title", content: "Zexofile Shop — Digital Files, Delivered" },
-      { property: "og:description", content: "Premium digital assets — source codes, websites, apps and customizable digital services." },
+      { property: "og:description", content: "Premium digital assets — source codes, websites, apps and customizable digital services. Instant delivery, secure checkout." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Zexofile Shop — Digital Files, Delivered" },
+      { name: "twitter:description", content: "Premium digital assets — source codes, websites, apps and customizable digital services. Instant delivery, secure checkout." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/W91D1eIsLbRMY6Vs7Na6iKLaxff2/social-images/social-1778142242936-1000098688.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/W91D1eIsLbRMY6Vs7Na6iKLaxff2/social-images/social-1778142242936-1000098688.webp" },
     ],
     links: [
       {
