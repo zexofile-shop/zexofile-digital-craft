@@ -169,6 +169,3 @@ function AdminLayout() {
     </div>
   );
 }
-
-// keep ChevronLeft import used (referenced in mobile drawer in future)
-void ChevronLeft;
