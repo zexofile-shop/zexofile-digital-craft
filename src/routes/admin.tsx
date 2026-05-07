@@ -44,10 +44,13 @@ function AdminLayout() {
   const { user, isAdmin, loading, profile } = useAuth();
   const loc = useLocation();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [loading, user, navigate]);
+
+  useEffect(() => { setMobileOpen(false); }, [loc.pathname]);
 
   if (loading) return <div className="p-10 text-center text-muted-foreground">Loading admin…</div>;
   if (!user) return <div className="p-10 text-center text-muted-foreground">Opening sign in…</div>;
@@ -62,67 +65,110 @@ function AdminLayout() {
   }
 
   const isActive = (n: NavItem) => n.exact ? loc.pathname === n.to : loc.pathname.startsWith(n.to);
+  const initials = (profile?.first_name?.[0] ?? profile?.email?.[0] ?? "A").toUpperCase();
 
-  return (
-    <div className="min-h-screen bg-gradient-hero">
-      <div className="flex">
-        <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r bg-card/95 min-h-screen sticky top-0 shadow-card">
-          <div className="px-5 py-5 border-b">
-            <Link to="/"><Logo withText size={36} /></Link>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-widest text-primary font-bold">
-              <ShieldCheck className="h-3 w-3" /> Admin Panel
+  const SidebarInner = (
+    <>
+      <div className="px-5 py-5 border-b border-border/60 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <Logo size={32} />
+          <span className="font-extrabold text-lg tracking-tight">Zexofile</span>
+        </Link>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-2 py-1 rounded">
+          Admin
+        </span>
+      </div>
+      <nav className="flex-1 p-3 space-y-5 overflow-y-auto">
+        {SECTIONS.map((sec) => (
+          <div key={sec.title}>
+            <div className="px-3 mb-2 text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">
+              {sec.title}
             </div>
-          </div>
-          <nav className="flex-1 p-3 space-y-5 overflow-y-auto">
-            {SECTIONS.map((sec) => (
-              <div key={sec.title}>
-                <div className="px-3 mb-1 text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{sec.title}</div>
-                <div className="space-y-1">
-                  {sec.items.map((n) => (
-                    <Link key={n.to} to={n.to} className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-smooth",
-                      isActive(n) ? "bg-primary text-primary-foreground shadow-elegant" : "hover:bg-accent text-foreground/80",
-                    )}>
-                      <n.icon className="h-4 w-4" />{n.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </nav>
-          <div className="p-3 border-t text-xs text-muted-foreground">
-            <div className="truncate">{profile?.email}</div>
-            <Link to="/" className="mt-2 inline-flex items-center gap-1 text-primary hover:underline">
-              <ArrowLeft className="h-3 w-3" /> Back to site
-            </Link>
-          </div>
-        </aside>
-
-        <main className="flex-1 min-w-0">
-          {/* Mobile header with back-to-site + scrollable nav */}
-          <div className="lg:hidden sticky top-0 z-40 border-b bg-card/95 backdrop-blur">
-            <div className="flex items-center gap-2 p-2">
-              <Button asChild variant="ghost" size="sm" className="shrink-0">
-                <Link to="/"><ChevronLeft className="h-4 w-4" /> Back</Link>
-              </Button>
-              <div className="text-sm font-bold truncate">Admin Panel</div>
-            </div>
-            <div className="flex gap-2 overflow-x-auto px-2 pb-2">
-              {SECTIONS.flatMap((s) => s.items).map((n) => (
+            <div className="space-y-0.5">
+              {sec.items.map((n) => (
                 <Link key={n.to} to={n.to} className={cn(
-                  "shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs whitespace-nowrap ring-1 ring-border",
-                  isActive(n) ? "bg-primary text-primary-foreground" : "bg-background",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive(n)
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-foreground/70 hover:bg-accent hover:text-foreground",
                 )}>
-                  <n.icon className="h-3 w-3" />{n.label}
+                  <n.icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{n.label}</span>
                 </Link>
               ))}
             </div>
           </div>
-          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl">
-            <Outlet />
-          </div>
-        </main>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-border/60 flex items-center gap-2 text-xs text-success">
+        <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+        System Online
       </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-muted/30 flex">
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border/60 bg-card sticky top-0 h-screen">
+        {SidebarInner}
+      </aside>
+
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <aside className="relative w-72 max-w-[85vw] flex flex-col bg-card shadow-elegant">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-3 right-3 p-2 rounded-lg hover:bg-accent z-10"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {SidebarInner}
+          </aside>
+        </div>
+      )}
+
+      <main className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-30 border-b border-border/60 bg-card/95 backdrop-blur">
+          <div className="flex items-center gap-3 px-4 lg:px-6 h-16">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div className="relative flex-1 max-w-xl hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search across the admin panel…" className="pl-9 h-9 bg-muted/50 border-0" />
+            </div>
+            <div className="flex-1 sm:hidden text-sm font-bold">Admin Panel</div>
+            <Link to="/admin/notifications" className="relative p-2 rounded-lg hover:bg-accent">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
+            </Link>
+            <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-border/60">
+              <div className="text-right hidden sm:block leading-tight">
+                <div className="text-sm font-bold">Admin</div>
+                <div className="text-[10px] text-muted-foreground">Super Admin</div>
+              </div>
+              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                {initials}
+              </div>
+              <button
+                onClick={() => supabase.auth.signOut().then(() => navigate({ to: "/" }))}
+                className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }
+
+// keep ChevronLeft import used (referenced in mobile drawer in future)
+void ChevronLeft;
