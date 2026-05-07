@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Package, ShoppingCart, Tags, Star, Bell, Settings,
-  FileText, MessageSquare, Wallet, ShieldCheck, KeyRound, ChevronLeft, LogOut,
+  FileText, MessageSquare, Wallet, KeyRound, LogOut,
   Search, Menu, X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
