@@ -1,12 +1,15 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Package, ShoppingCart, Tags, Star, Bell, Settings,
-  FileText, MessageSquare, Wallet, ArrowLeft, ShieldCheck, KeyRound, ChevronLeft,
+  FileText, MessageSquare, Wallet, ShieldCheck, KeyRound, ChevronLeft, LogOut,
+  Search, Menu, X,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
