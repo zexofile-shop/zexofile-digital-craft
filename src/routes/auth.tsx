@@ -59,6 +59,7 @@ function AuthPage() {
   };
 
   const google = async () => {
+    if (!acceptTerms) { toast.error("Please accept the Terms & Privacy Policy to continue"); return; }
     setBusy(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
