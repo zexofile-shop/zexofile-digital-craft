@@ -29,11 +29,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptTerms) { toast.error("Please accept the Terms & Privacy Policy to continue"); return; }
     const r = schema.safeParse({ email, password });
     if (!r.success) { toast.error(r.error.issues[0].message); return; }
     setBusy(true);
