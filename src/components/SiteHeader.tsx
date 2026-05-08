@@ -9,7 +9,8 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -22,9 +23,22 @@ export function SiteHeader() {
   const { user, profile, isAdmin, signOut } = useAuth();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full glass">
+    <header className={cn(
+      "sticky top-0 z-50 w-full transition-all duration-200",
+      scrolled
+        ? "bg-background/95 backdrop-blur-xl border-b border-border shadow-sm"
+        : "bg-background/70 backdrop-blur-md",
+    )}>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4">
         <Link to="/" className="flex items-center gap-2">
           <Logo withText />
