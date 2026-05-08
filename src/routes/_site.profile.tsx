@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Camera } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadImage } from "@/server-fns/uploads.functions";
+import { withAuthHeaders } from "@/lib/server-fn-auth";
 import { toast } from "sonner";
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
 
 export const Route = createFileRoute("/_site/profile")({
   component: ProfilePage,
@@ -18,12 +30,29 @@ export const Route = createFileRoute("/_site/profile")({
 function ProfilePage() {
   const { user, profile, refresh, profileCompletion, loading } = useAuth();
   const nav = useNavigate();
+  const upload = useServerFn(uploadImage);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [f, setF] = useState({
     first_name: "", last_name: "", whatsapp_number: "", calling_number: "",
     optional_number: "", telegram_username: "", instagram_username: "",
     bio: "", found_from: "", avatar_url: "",
   });
+
+  const handleAvatarUpload = async (file: File | undefined) => {
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("Image must be < 5MB");
+    setUploading(true);
+    try {
+      const b64 = await fileToBase64(file);
+      const { url } = await upload(await withAuthHeaders({ imageBase64: b64, filename: file.name }));
+      setF((s) => ({ ...s, avatar_url: url }));
+      await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+      await refresh();
+      toast.success("Profile image updated");
+    } catch (e: any) { toast.error(e.message || "Upload failed"); }
+    finally { setUploading(false); }
+  };
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => {
@@ -82,7 +111,7 @@ function ProfilePage() {
         <form onSubmit={save} className="mt-6 space-y-5 rounded-2xl bg-card p-6 ring-1 ring-border shadow-card">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <div className="relative h-20 w-20 overflow-hidden rounded-full ring-2 ring-primary/30">
+            <label className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-full ring-2 ring-primary/30 hover:ring-primary transition-smooth">
               {f.avatar_url ? (
                 <img src={f.avatar_url} alt="avatar" className="h-full w-full object-cover" />
               ) : (
@@ -90,11 +119,14 @@ function ProfilePage() {
                   {(f.first_name?.[0] ?? user?.email?.[0] ?? "U").toUpperCase()}
                 </div>
               )}
-              <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><Camera className="h-3.5 w-3.5" /></span>
-            </div>
+              <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground">
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleAvatarUpload(e.target.files?.[0])} />
+            </label>
             <div className="flex-1">
-              <Label htmlFor="avatar">Profile image URL</Label>
-              <Input id="avatar" placeholder="https://…" value={f.avatar_url} onChange={(e) => setF({ ...f, avatar_url: e.target.value })} className="rounded-xl" />
+              <Label htmlFor="avatar">Profile image URL (or click avatar to upload)</Label>
+              <Input id="avatar" placeholder="https://… or upload above" value={f.avatar_url} onChange={(e) => setF({ ...f, avatar_url: e.target.value })} className="rounded-xl" />
             </div>
           </div>
 

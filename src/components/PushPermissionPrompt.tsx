@@ -15,28 +15,52 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function PushPermissionPrompt() {
-  const { user } = useAuth();
+  const { user, profile, refresh } = useAuth();
   const getKey = useServerFn(getVapidPublicKey);
   const [show, setShow] = useState(false);
+  const [vapidVersion, setVapidVersion] = useState<number>(1);
 
   useEffect(() => {
     if (!user || typeof window === "undefined") return;
     if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    setShow(Notification.permission === "default" && !localStorage.getItem("zexo_push_prompt_done"));
-  }, [user]);
+
+    (async () => {
+      const { data: ws } = await supabase.from("website_settings").select("vapid_key_version").eq("id", 1).maybeSingle();
+      const currentVersion = Number((ws as any)?.vapid_key_version ?? 1);
+      setVapidVersion(currentVersion);
+      const lastSeenVersion = Number((profile as any)?.push_prompt_vapid_version ?? 0);
+      const browserPerm = Notification.permission;
+      // Re-prompt if VAPID key was rotated since user's last choice
+      if (lastSeenVersion < currentVersion) {
+        setShow(true);
+        return;
+      }
+      if (browserPerm === "default" && (profile as any)?.notification_choice !== "declined") {
+        setShow(true);
+      }
+    })();
+  }, [user, profile]);
+
+  const recordChoice = async (choice: "granted" | "declined") => {
+    if (!user) return;
+    await supabase.from("profiles").update({
+      notification_choice: choice,
+      notification_choice_at: new Date().toISOString(),
+      push_prompt_vapid_version: vapidVersion,
+    }).eq("id", user.id);
+    await refresh();
+  };
 
   const enable = async () => {
     try {
-      localStorage.setItem("zexo_push_prompt_done", "1");
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") { setShow(false); return; }
+      if (permission !== "granted") { await recordChoice("declined"); setShow(false); return; }
       const { publicKey } = await getKey({ data: undefined as never });
-      if (!publicKey) throw new Error("Push key missing");
+      if (!publicKey) throw new Error("Push key missing — contact admin");
       const appKey = urlBase64ToUint8Array(publicKey);
       await navigator.serviceWorker.register("/sw.js");
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
-      // If an old subscription exists with a different key, drop it first
       if (subscription) {
         const existingKey = subscription.options?.applicationServerKey;
         const sameKey = existingKey && new Uint8Array(existingKey as ArrayBuffer).every((b, i) => b === appKey[i]);
@@ -53,12 +77,18 @@ export function PushPermissionPrompt() {
         auth: json.keys!.auth,
       }, { onConflict: "endpoint" });
       if (error) throw error;
+      await recordChoice("granted");
       toast.success("Notifications enabled");
     } catch (error: any) {
       toast.error(error.message || "Notifications could not be enabled");
     } finally {
       setShow(false);
     }
+  };
+
+  const decline = async () => {
+    await recordChoice("declined");
+    setShow(false);
   };
 
   if (!show) return null;
@@ -71,7 +101,7 @@ export function PushPermissionPrompt() {
           <p className="mt-1 text-sm text-muted-foreground">Get wallet, order and delivery updates instantly.</p>
           <div className="mt-3 flex gap-2">
             <Button size="sm" onClick={enable}>Allow</Button>
-            <Button size="sm" variant="outline" onClick={() => { localStorage.setItem("zexo_push_prompt_done", "1"); setShow(false); }}>Not now</Button>
+            <Button size="sm" variant="outline" onClick={decline}>Not now</Button>
           </div>
         </div>
       </div>

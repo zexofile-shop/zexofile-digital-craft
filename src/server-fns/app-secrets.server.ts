@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const cache = new Map<string, { v: string; exp: number }>();
-const TTL = 30_000;
+const TTL = 5_000;
 
 /** Read a secret from app_secrets table, falling back to process.env. */
 export async function getSecret(key: string): Promise<string | null> {

@@ -6,13 +6,13 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getSecret } from "./app-secrets.server";
 
 const keyId = async () => {
-  const v = (await getSecret("RAZORPAY_KEY_ID")) ?? process.env.VITE_RAZORPAY_KEY_ID;
-  if (!v) throw new Error("RAZORPAY_KEY_ID not configured");
+  const v = ((await getSecret("RAZORPAY_KEY_ID")) ?? process.env.RAZORPAY_KEY_ID ?? "").trim();
+  if (!v) throw new Error("RAZORPAY_KEY_ID not configured. Set it in Admin → API Keys.");
   return v;
 };
 const keySecret = async () => {
-  const v = (await getSecret("RAZORPAY_KEY_SECRET")) ?? process.env.RAZORPAY_SECRET_KEY;
-  if (!v) throw new Error("RAZORPAY_KEY_SECRET not configured");
+  const v = ((await getSecret("RAZORPAY_KEY_SECRET")) ?? process.env.RAZORPAY_KEY_SECRET ?? "").trim();
+  if (!v) throw new Error("RAZORPAY_KEY_SECRET not configured. Set it in Admin → API Keys.");
   return v;
 };
 

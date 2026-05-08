@@ -216,6 +216,7 @@ export type Database = {
       }
       custom_orders: {
         Row: {
+          address: string | null
           admin_notes: string | null
           calling_number: string | null
           created_at: string
@@ -227,13 +228,17 @@ export type Database = {
           order_id: string | null
           product_id: string | null
           project_details: string
+          purpose: string | null
           reference_images: Json | null
+          sample_images: Json | null
+          social_accounts: Json | null
           status: Database["public"]["Enums"]["custom_status"]
           updated_at: string
           user_id: string
           whatsapp_number: string | null
         }
         Insert: {
+          address?: string | null
           admin_notes?: string | null
           calling_number?: string | null
           created_at?: string
@@ -245,13 +250,17 @@ export type Database = {
           order_id?: string | null
           product_id?: string | null
           project_details: string
+          purpose?: string | null
           reference_images?: Json | null
+          sample_images?: Json | null
+          social_accounts?: Json | null
           status?: Database["public"]["Enums"]["custom_status"]
           updated_at?: string
           user_id: string
           whatsapp_number?: string | null
         }
         Update: {
+          address?: string | null
           admin_notes?: string | null
           calling_number?: string | null
           created_at?: string
@@ -263,7 +272,10 @@ export type Database = {
           order_id?: string | null
           product_id?: string | null
           project_details?: string
+          purpose?: string | null
           reference_images?: Json | null
+          sample_images?: Json | null
+          social_accounts?: Json | null
           status?: Database["public"]["Enums"]["custom_status"]
           updated_at?: string
           user_id?: string
@@ -518,7 +530,10 @@ export type Database = {
           instagram_username: string | null
           last_login_at: string | null
           last_name: string | null
+          notification_choice: string | null
+          notification_choice_at: string | null
           optional_number: string | null
+          push_prompt_vapid_version: number | null
           signup_at: string
           telegram_username: string | null
           total_orders: number
@@ -539,7 +554,10 @@ export type Database = {
           instagram_username?: string | null
           last_login_at?: string | null
           last_name?: string | null
+          notification_choice?: string | null
+          notification_choice_at?: string | null
           optional_number?: string | null
+          push_prompt_vapid_version?: number | null
           signup_at?: string
           telegram_username?: string | null
           total_orders?: number
@@ -560,7 +578,10 @@ export type Database = {
           instagram_username?: string | null
           last_login_at?: string | null
           last_name?: string | null
+          notification_choice?: string | null
+          notification_choice_at?: string | null
           optional_number?: string | null
+          push_prompt_vapid_version?: number | null
           signup_at?: string
           telegram_username?: string | null
           total_orders?: number
@@ -735,6 +756,7 @@ export type Database = {
           support_email: string
           tagline: string
           updated_at: string
+          vapid_key_version: number
         }
         Insert: {
           default_theme?: string
@@ -747,6 +769,7 @@ export type Database = {
           support_email?: string
           tagline?: string
           updated_at?: string
+          vapid_key_version?: number
         }
         Update: {
           default_theme?: string
@@ -759,6 +782,7 @@ export type Database = {
           support_email?: string
           tagline?: string
           updated_at?: string
+          vapid_key_version?: number
         }
         Relationships: []
       }
