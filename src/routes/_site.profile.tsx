@@ -30,12 +30,29 @@ export const Route = createFileRoute("/_site/profile")({
 function ProfilePage() {
   const { user, profile, refresh, profileCompletion, loading } = useAuth();
   const nav = useNavigate();
+  const upload = useServerFn(uploadImage);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [f, setF] = useState({
     first_name: "", last_name: "", whatsapp_number: "", calling_number: "",
     optional_number: "", telegram_username: "", instagram_username: "",
     bio: "", found_from: "", avatar_url: "",
   });
+
+  const handleAvatarUpload = async (file: File | undefined) => {
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("Image must be < 5MB");
+    setUploading(true);
+    try {
+      const b64 = await fileToBase64(file);
+      const { url } = await upload(await withAuthHeaders({ imageBase64: b64, filename: file.name }));
+      setF((s) => ({ ...s, avatar_url: url }));
+      await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+      await refresh();
+      toast.success("Profile image updated");
+    } catch (e: any) { toast.error(e.message || "Upload failed"); }
+    finally { setUploading(false); }
+  };
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
   useEffect(() => {
