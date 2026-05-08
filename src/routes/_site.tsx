@@ -48,10 +48,10 @@ function MaintenancePage() {
       </div>
       <h1 className="mt-6 text-3xl font-extrabold sm:text-4xl">We're under maintenance</h1>
       <p className="mt-3 max-w-md text-muted-foreground">
-        The site is temporarily offline for upgrades. Please check back shortly — admins can still sign in below.
+        The site is temporarily offline for upgrades. Please check back shortly.
       </p>
       <Link to="/auth" className="mt-6 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
-        Admin sign in
+        Sign in
       </Link>
     </div>
   );
