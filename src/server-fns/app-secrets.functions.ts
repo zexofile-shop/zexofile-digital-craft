@@ -37,12 +37,20 @@ export const updateAppSecret = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     const { error } = await supabaseAdmin.from("app_secrets").upsert({
       key: data.key,
-      value: data.value,
+      value: data.value.trim(),
       updated_by: context.userId,
       updated_at: new Date().toISOString(),
     }, { onConflict: "key" });
     if (error) throw error;
     clearSecretCache();
+    // If VAPID key changed, bump the version so users are re-prompted to re-subscribe
+    if (data.key === "VAPID_PUBLIC_KEY" || data.key === "VAPID_PRIVATE_KEY") {
+      const { data: ws } = await supabaseAdmin.from("website_settings").select("vapid_key_version").eq("id", 1).maybeSingle();
+      const next = Number(ws?.vapid_key_version ?? 1) + 1;
+      await supabaseAdmin.from("website_settings").upsert({ id: 1, vapid_key_version: next }, { onConflict: "id" });
+      // Clear all push subscriptions since they're tied to old VAPID key
+      await supabaseAdmin.from("push_subscriptions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    }
     return { ok: true };
   });
 
