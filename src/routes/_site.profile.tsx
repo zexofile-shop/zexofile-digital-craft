@@ -111,7 +111,7 @@ function ProfilePage() {
         <form onSubmit={save} className="mt-6 space-y-5 rounded-2xl bg-card p-6 ring-1 ring-border shadow-card">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <div className="relative h-20 w-20 overflow-hidden rounded-full ring-2 ring-primary/30">
+            <label className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-full ring-2 ring-primary/30 hover:ring-primary transition-smooth">
               {f.avatar_url ? (
                 <img src={f.avatar_url} alt="avatar" className="h-full w-full object-cover" />
               ) : (
@@ -119,11 +119,14 @@ function ProfilePage() {
                   {(f.first_name?.[0] ?? user?.email?.[0] ?? "U").toUpperCase()}
                 </div>
               )}
-              <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground"><Camera className="h-3.5 w-3.5" /></span>
-            </div>
+              <span className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground">
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleAvatarUpload(e.target.files?.[0])} />
+            </label>
             <div className="flex-1">
-              <Label htmlFor="avatar">Profile image URL</Label>
-              <Input id="avatar" placeholder="https://…" value={f.avatar_url} onChange={(e) => setF({ ...f, avatar_url: e.target.value })} className="rounded-xl" />
+              <Label htmlFor="avatar">Profile image URL (or click avatar to upload)</Label>
+              <Input id="avatar" placeholder="https://… or upload above" value={f.avatar_url} onChange={(e) => setF({ ...f, avatar_url: e.target.value })} className="rounded-xl" />
             </div>
           </div>
 
