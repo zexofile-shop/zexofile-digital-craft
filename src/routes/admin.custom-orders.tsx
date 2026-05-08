@@ -31,7 +31,21 @@ function CustomOrdersAdmin() {
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            <p className="mt-3 text-sm whitespace-pre-wrap">{o.project_details}</p>
+            <p className="mt-3 text-sm whitespace-pre-wrap"><strong>Project:</strong> {o.project_details}</p>
+            {o.purpose && <p className="mt-2 text-sm whitespace-pre-wrap"><strong>Purpose:</strong> {o.purpose}</p>}
+            {o.address && <p className="mt-1 text-xs text-muted-foreground"><strong>Address:</strong> {o.address}</p>}
+            {o.social_accounts && Object.values(o.social_accounts).some(Boolean) && (
+              <p className="mt-1 text-xs text-muted-foreground"><strong>Social:</strong> {Object.entries(o.social_accounts).filter(([_,v]) => v).map(([k,v]) => `${k}: ${v}`).join(" · ")}</p>
+            )}
+            {Array.isArray(o.sample_images) && o.sample_images.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {o.sample_images.map((url: string, i: number) => (
+                  <a key={i} href={url} target="_blank" rel="noreferrer" className="block h-16 w-16 overflow-hidden rounded ring-1 ring-border">
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            )}
             {o.extra_notes && <p className="mt-2 text-xs text-muted-foreground">Notes: {o.extra_notes}</p>}
           </div>
         ))}
