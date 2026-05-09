@@ -14,8 +14,8 @@ import {
 
 export const Route = createFileRoute("/admin/")({ component: Dashboard });
 
-const PIE_COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--gold))"];
-const NOTIF_COLORS = ["hsl(var(--success))", "hsl(var(--destructive))", "hsl(var(--muted-foreground))"];
+const PIE_COLORS = ["var(--primary)", "var(--success)", "var(--gold)"];
+const NOTIF_COLORS = ["var(--success)", "var(--destructive)", "var(--muted-foreground)"];
 
 function Dashboard() {
   const fn = useServerFn(adminDashboardStats);
@@ -116,7 +116,7 @@ function Dashboard() {
             <XAxis dataKey="date" fontSize={10} tickFormatter={(d) => d.slice(5)} />
             <YAxis fontSize={10} />
             <Tooltip />
-            <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} />
+            <Area type="monotone" dataKey="value" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} />
           </AreaChart>
         </ChartCard>
         <ChartCard title="Sales (last 30 days)" subtitle="Paid + delivered orders per day">
@@ -125,7 +125,7 @@ function Dashboard() {
             <XAxis dataKey="date" fontSize={10} tickFormatter={(d) => d.slice(5)} />
             <YAxis fontSize={10} />
             <Tooltip />
-            <Bar dataKey="value" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="value" fill="var(--success)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartCard>
         <ChartCard title="INR revenue (last 30 days)" subtitle="Direct Razorpay portion of orders">
@@ -134,7 +134,7 @@ function Dashboard() {
             <XAxis dataKey="date" fontSize={10} tickFormatter={(d) => d.slice(5)} />
             <YAxis fontSize={10} />
             <Tooltip formatter={(v: number) => `₹${Number(v).toLocaleString("en-IN")}`} />
-            <Area type="monotone" dataKey="value" stroke="hsl(var(--gold))" fill="hsl(var(--gold))" fillOpacity={0.25} />
+            <Area type="monotone" dataKey="value" stroke="var(--gold)" fill="var(--gold)" fillOpacity={0.25} />
           </AreaChart>
         </ChartCard>
         <ChartCard
