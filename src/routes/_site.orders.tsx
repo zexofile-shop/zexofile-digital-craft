@@ -37,7 +37,7 @@ function OrdersPage() {
             {o.products?.banner_image && <img src={o.products.banner_image} className="h-16 w-16 rounded-lg object-cover" alt="" />}
             <div className="flex-1 min-w-[180px]">
               <div className="font-bold">{o.products?.name ?? "Product"}</div>
-              <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()} · {o.order_type}</div>
             </div>
             <Badge className={
               o.status === "delivered" ? "bg-success text-success-foreground" :
@@ -46,6 +46,16 @@ function OrdersPage() {
               "bg-muted text-muted-foreground"
             }>{o.status}</Badge>
             <div className="font-bold">₹{Number(o.amount).toLocaleString("en-IN")}</div>
+            {o.delivery_url && (
+              <a href={o.delivery_url} target="_blank" rel="noreferrer">
+                <Button size="sm" className="rounded-full bg-gradient-primary">Get Access</Button>
+              </a>
+            )}
+            {o.order_type === "customization" && (
+              <Link to="/custom-order" search={{ orderId: o.id, productId: o.product_id }}>
+                <Button size="sm" variant="outline" className="rounded-full">Fill brief</Button>
+              </Link>
+            )}
           </div>
         ))}
       </div>
