@@ -14,6 +14,10 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_site/custom-order")({
   component: CustomOrder,
+  validateSearch: (s: Record<string, unknown>) => ({
+    orderId: typeof s.orderId === "string" ? s.orderId : undefined,
+    productId: typeof s.productId === "string" ? s.productId : undefined,
+  }),
 });
 
 function fileToBase64(file: File): Promise<string> {
