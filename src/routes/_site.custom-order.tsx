@@ -14,6 +14,10 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_site/custom-order")({
   component: CustomOrder,
+  validateSearch: (s: Record<string, unknown>) => ({
+    orderId: typeof s.orderId === "string" ? s.orderId : undefined,
+    productId: typeof s.productId === "string" ? s.productId : undefined,
+  }),
 });
 
 function fileToBase64(file: File): Promise<string> {
@@ -27,6 +31,7 @@ function fileToBase64(file: File): Promise<string> {
 
 function CustomOrder() {
   const { user, profile, loading } = useAuth();
+  const search = Route.useSearch();
   const nav = useNavigate();
   const upload = useServerFn(uploadImage);
   const [busy, setBusy] = useState(false);
@@ -75,6 +80,8 @@ function CustomOrder() {
     setBusy(true);
     const payload = {
       user_id: user.id,
+      order_id: search.orderId ?? null,
+      product_id: search.productId ?? null,
       name: `${f.first_name} ${f.last_name}`.trim(),
       email: f.email,
       whatsapp_number: f.whatsapp_number,

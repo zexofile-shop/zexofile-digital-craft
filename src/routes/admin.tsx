@@ -145,12 +145,16 @@ function AdminLayout() {
             </Link>
             <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-border/60">
               <div className="text-right hidden sm:block leading-tight">
-                <div className="text-sm font-bold">Admin</div>
+                <div className="text-sm font-bold">{profile?.first_name || profile?.email?.split("@")[0] || "Admin"}</div>
                 <div className="text-[10px] text-muted-foreground">Super Admin</div>
               </div>
-              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-                {initials}
-              </div>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="avatar" className="h-9 w-9 rounded-full object-cover ring-1 ring-border" />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                  {initials}
+                </div>
+              )}
               <button
                 onClick={() => supabase.auth.signOut().then(() => navigate({ to: "/" }))}
                 className="p-2 rounded-lg hover:bg-accent text-muted-foreground"

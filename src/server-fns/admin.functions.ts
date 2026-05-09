@@ -349,28 +349,132 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+function bucketByDay(rows: Array<{ created_at: string; value?: number }>, days: number) {
+  const map = new Map<string, number>();
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    map.set(d.toISOString().slice(0, 10), 0);
+  }
+  for (const r of rows) {
+    const key = String(r.created_at).slice(0, 10);
+    if (map.has(key)) map.set(key, (map.get(key) ?? 0) + (r.value ?? 1));
+  }
+  return Array.from(map.entries()).map(([date, value]) => ({ date, value }));
+}
+
 export const adminDashboardStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
     const { authUsers } = await ensureAdminBootstrap();
-    const [{ count: ordersCount }, { count: productsCount }, { data: rev }, { count: notificationsCount }] = await Promise.all([
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const [
+      { count: ordersCount },
+      { count: productsCount },
+      { data: paidOrders },
+      { count: notificationsCount },
+      { data: walletTx },
+      { data: subs },
+      { data: profilesAll },
+      { data: orders30 },
+    ] = await Promise.all([
       supabaseAdmin.from("orders").select("*", { count: "exact", head: true }),
       supabaseAdmin.from("products").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("orders").select("amount,status,created_at").in("status", ["paid", "delivered"]),
+      supabaseAdmin.from("orders").select("amount,wallet_used,status,created_at,order_type").in("status", ["paid", "delivered"]),
       supabaseAdmin.from("notifications").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("wallet_transactions").select("amount,type,created_at").eq("type", "credit_topup"),
+      supabaseAdmin.from("push_subscriptions").select("user_id"),
+      supabaseAdmin.from("profiles").select("id,notification_choice,signup_at"),
+      supabaseAdmin.from("orders").select("amount,wallet_used,created_at,status").in("status", ["paid", "delivered"]).gte("created_at", since),
     ]);
-    const revenue = (rev ?? []).reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0);
-    const active24h = (rev ?? []).filter((row: any) => {
+
+    const paidRows = paidOrders ?? [];
+    const totalRevenueInr = paidRows.reduce((sum, r: any) => sum + Number(r.amount || 0), 0);
+    const coinsValue = paidRows.reduce((sum, r: any) => sum + Number(r.wallet_used || 0), 0);
+    const razorpayDirect = paidRows.reduce((sum, r: any) => sum + Math.max(0, Number(r.amount || 0) - Number(r.wallet_used || 0)), 0);
+    const walletTopups = (walletTx ?? []).reduce((sum, r: any) => sum + Number(r.amount || 0), 0);
+    const totalRevenue = razorpayDirect + walletTopups; // real INR coming in (purchases minus coins + topups)
+
+    const active24h = paidRows.filter((row: any) => {
       const createdAt = row.created_at ? new Date(row.created_at).getTime() : 0;
       return createdAt >= Date.now() - 24 * 60 * 60 * 1000;
     }).length;
+
+    const subscribedUserIds = new Set((subs ?? []).map((s: any) => s.user_id).filter(Boolean));
+    const notifAllowed = subscribedUserIds.size;
+    const notifDenied = (profilesAll ?? []).filter((p: any) => p.notification_choice === "declined").length;
+    const notifPending = Math.max(0, authUsers.length - notifAllowed - notifDenied);
+
+    const usersSeries = bucketByDay(
+      (profilesAll ?? []).filter((p: any) => p.signup_at).map((p: any) => ({ created_at: p.signup_at })),
+      30,
+    );
+    const salesSeries = bucketByDay((orders30 ?? []).map((r: any) => ({ created_at: r.created_at })), 30);
+    const revenueSeries = bucketByDay(
+      (orders30 ?? []).map((r: any) => ({
+        created_at: r.created_at,
+        value: Math.max(0, Number(r.amount || 0) - Number(r.wallet_used || 0)),
+      })),
+      30,
+    );
+
     return {
       users: authUsers.length,
       orders: ordersCount ?? 0,
       products: productsCount ?? 0,
       notifications: notificationsCount ?? 0,
       active24h,
-      revenue,
+      revenue: totalRevenue,
+      distribution: {
+        razorpayDirect,
+        coinsValue,
+        walletTopups,
+        grossOrderRevenue: totalRevenueInr,
+      },
+      notifStats: { allowed: notifAllowed, denied: notifDenied, pending: notifPending },
+      series: { users: usersSeries, sales: salesSeries, revenue: revenueSeries },
     };
+  });
+
+export const adminUserDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const [{ data: profile }, { data: orders }, { data: wallet }, { data: roles }, { data: authUser }, { data: pushSub }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("*").eq("id", data.userId).maybeSingle(),
+      supabaseAdmin.from("orders").select("*, products(name, slug)").eq("user_id", data.userId).order("created_at", { ascending: false }),
+      supabaseAdmin.from("wallet_transactions").select("*").eq("user_id", data.userId).order("created_at", { ascending: false }).limit(50),
+      supabaseAdmin.from("user_roles").select("role,permissions").eq("user_id", data.userId),
+      supabaseAdmin.auth.admin.getUserById(data.userId),
+      supabaseAdmin.from("push_subscriptions").select("id,endpoint,created_at").eq("user_id", data.userId),
+    ]);
+    return {
+      profile,
+      orders: orders ?? [],
+      wallet: wallet ?? [],
+      roles: roles ?? [],
+      authUser: authUser?.user ?? null,
+      pushSubscriptions: pushSub ?? [],
+    };
+  });
+
+export const adminForceRePromptNotifications = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ userIds: z.array(z.string().uuid()).optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { data: ws } = await supabaseAdmin.from("website_settings").select("vapid_key_version").eq("id", 1).maybeSingle();
+    const next = Number((ws as any)?.vapid_key_version ?? 1) + 1;
+    await supabaseAdmin.from("website_settings").update({ vapid_key_version: next }).eq("id", 1);
+    if (data.userIds && data.userIds.length) {
+      await supabaseAdmin.from("profiles").update({ push_prompt_vapid_version: 0, notification_choice: null }).in("id", data.userIds);
+      await supabaseAdmin.from("push_subscriptions").delete().in("user_id", data.userIds);
+    } else {
+      await supabaseAdmin.from("profiles").update({ push_prompt_vapid_version: 0, notification_choice: null }).neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabaseAdmin.from("push_subscriptions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    }
+    return { ok: true, version: next };
   });
