@@ -110,7 +110,11 @@ function CheckoutPage() {
         }));
         toast.success("Payment complete with Zexo Coins!");
         await refresh();
-        nav({ to: res.deliveryUrl ? "/orders" : "/orders" });
+        if (orderType === "customization") {
+          nav({ to: "/custom-order", search: { orderId: res.orderId, productId: p.id } });
+        } else {
+          nav({ to: "/orders" });
+        }
         return;
       }
 
@@ -132,7 +136,11 @@ function CheckoutPage() {
             await verify(await withAuthHeaders({ ...resp, purpose: "product", amountInr: payable }));
             toast.success("Payment successful!");
             await refresh();
-            nav({ to: "/orders" });
+            if (orderType === "customization") {
+              nav({ to: "/custom-order", search: { productId: p.id } });
+            } else {
+              nav({ to: "/orders" });
+            }
           } catch (e: any) { toast.error(e.message); }
           finally { setPaying(false); }
         },
