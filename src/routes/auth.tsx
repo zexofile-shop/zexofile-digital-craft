@@ -117,10 +117,10 @@ function AuthPage() {
         <Link to="/" className="mb-6 flex justify-center"><Logo size={56} withText /></Link>
         <div className="rounded-3xl glass p-8 shadow-elegant">
           <h1 className="text-2xl font-extrabold text-center">
-            {mode === "signin" ? "Welcome back" : "Create your account"}
+            {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Sign in with email"}
           </h1>
           <p className="mt-1 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "Sign in to continue" : "Join Zexofile Shop today"}
+            {mode === "signin" ? "Sign in to continue" : mode === "signup" ? "Join Zexofile Shop today" : "We'll email you a 6-digit code"}
           </p>
 
           <Button
@@ -138,54 +138,99 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
           </div>
 
-          <form onSubmit={handle} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="rounded-xl" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input id="password" type={showPwd ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="rounded-xl pr-10" />
-                <button type="button" onClick={() => setShowPwd((v) => !v)} aria-label={showPwd ? "Hide password" : "Show password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          {mode === "otp" ? (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="otp-email">Email</Label>
+                <Input id="otp-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={otpSent} className="rounded-xl" />
               </div>
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary" />
+                <span>I agree to the <Link to="/legal/$slug" params={{ slug: "terms" }} target="_blank" className="font-semibold text-primary hover:underline">Terms</Link> & <Link to="/legal/$slug" params={{ slug: "privacy" }} target="_blank" className="font-semibold text-primary hover:underline">Privacy</Link>.</span>
+              </label>
+              {!otpSent ? (
+                <Button onClick={sendOtp} disabled={busy || !acceptTerms} className="w-full rounded-full bg-gradient-primary shadow-elegant">
+                  {busy ? "Sending…" : "Send 6-digit code"}
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <Label>Enter the code sent to {email}</Label>
+                  <div className="flex justify-center">
+                    <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                      <InputOTPGroup>
+                        {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  <Button onClick={verifyOtp} disabled={busy} className="w-full rounded-full bg-gradient-primary shadow-elegant">
+                    {busy ? "Verifying…" : "Verify & sign in"}
+                  </Button>
+                  <button type="button" onClick={() => { setOtpSent(false); setOtpCode(""); }} className="w-full text-xs text-muted-foreground hover:text-foreground">
+                    Use a different email
+                  </button>
+                </div>
+              )}
             </div>
-            <label className="flex items-start gap-2 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
-                required
-              />
-              <span>
-                I agree to the{" "}
-                <Link to="/legal/$slug" params={{ slug: "terms" }} target="_blank" className="font-semibold text-primary hover:underline">Terms &amp; Conditions</Link>
-                {" "}and{" "}
-                <Link to="/legal/$slug" params={{ slug: "privacy" }} target="_blank" className="font-semibold text-primary hover:underline">Privacy Policy</Link>.
-              </span>
-            </label>
-            <Button type="submit" disabled={busy || !acceptTerms} className="w-full rounded-full bg-gradient-primary shadow-elegant">
-              {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
-            </Button>
-          </form>
+          ) : (
+            <form onSubmit={handle} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="rounded-xl" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input id="password" type={showPwd ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="rounded-xl pr-10" />
+                  <button type="button" onClick={() => setShowPwd((v) => !v)} aria-label={showPwd ? "Hide password" : "Show password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+                  required
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/legal/$slug" params={{ slug: "terms" }} target="_blank" className="font-semibold text-primary hover:underline">Terms &amp; Conditions</Link>
+                  {" "}and{" "}
+                  <Link to="/legal/$slug" params={{ slug: "privacy" }} target="_blank" className="font-semibold text-primary hover:underline">Privacy Policy</Link>.
+                </span>
+              </label>
+              <Button type="submit" disabled={busy || !acceptTerms} className="w-full rounded-full bg-gradient-primary shadow-elegant">
+                {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+              </Button>
+            </form>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setMode(mode === "otp" ? "signin" : "otp")}
+            className="mt-3 w-full rounded-full py-2 text-xs font-semibold text-primary hover:underline"
+          >
+            {mode === "otp" ? "← Use password instead" : "Sign in with email OTP →"}
+          </button>
 
           <button
             type="button"
             onClick={() => nav({ to: "/" })}
-            className="mt-3 w-full rounded-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="mt-2 w-full rounded-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             Skip login for now →
           </button>
 
-          <p className="mt-5 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "Don't have an account? " : "Already a member? "}
-            <button type="button" onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="font-semibold text-primary hover:underline">
-              {mode === "signin" ? "Sign up" : "Sign in"}
-            </button>
-          </p>
+          {mode !== "otp" && (
+            <p className="mt-5 text-center text-sm text-muted-foreground">
+              {mode === "signin" ? "Don't have an account? " : "Already a member? "}
+              <button type="button" onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="font-semibold text-primary hover:underline">
+                {mode === "signin" ? "Sign up" : "Sign in"}
+              </button>
+            </p>
+          )}
         </div>
       </motion.div>
     </div>
