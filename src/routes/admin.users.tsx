@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Search, ShieldCheck, Plus, Minus } from "lucide-react";
+import { Search, ShieldCheck, Plus, Minus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { adminListUsers, adminSetUserRole, adminCreditWallet } from "@/server-fns/admin.functions";
+import { adminListUsers, adminSetUserRole, adminCreditWallet, adminUserDetails } from "@/server-fns/admin.functions";
 import { ZexoBalance } from "@/components/ZexoCoin";
 import { withAuthHeaders } from "@/lib/server-fn-auth";
 import { toast } from "sonner";
