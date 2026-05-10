@@ -28,16 +28,24 @@ export function PushPermissionPrompt() {
       const { data: ws } = await supabase.from("website_settings").select("vapid_key_version").eq("id", 1).maybeSingle();
       const currentVersion = Number((ws as any)?.vapid_key_version ?? 1);
       setVapidVersion(currentVersion);
-      const lastSeenVersion = Number((profile as any)?.push_prompt_vapid_version ?? 0);
       const browserPerm = Notification.permission;
-      // Re-prompt if VAPID key was rotated since user's last choice
-      if (lastSeenVersion < currentVersion) {
-        setShow(true);
+      const choice = (profile as any)?.notification_choice;
+
+      // If browser already granted, ensure we have a record + active subscription, then never re-prompt
+      if (browserPerm === "granted") {
+        if (choice !== "granted") {
+          await supabase.from("profiles").update({
+            notification_choice: "granted",
+            notification_choice_at: new Date().toISOString(),
+            push_prompt_vapid_version: currentVersion,
+          }).eq("id", user.id);
+          await refresh();
+        }
         return;
       }
-      if (browserPerm === "default" && (profile as any)?.notification_choice !== "declined") {
-        setShow(true);
-      }
+      if (browserPerm === "denied") return;
+      // Only show if default AND user hasn't declined yet
+      if (choice !== "declined") setShow(true);
     })();
   }, [user, profile]);
 
