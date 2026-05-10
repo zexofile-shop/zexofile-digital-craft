@@ -30,7 +30,16 @@ jobs:
         run: bun install
 
       - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
         run: bun run build
+
+      - name: SPA fallback (copy index.html to 404.html)
+        run: |
+          if [ -f ./dist/index.html ]; then cp ./dist/index.html ./dist/404.html; fi
+          touch ./dist/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
