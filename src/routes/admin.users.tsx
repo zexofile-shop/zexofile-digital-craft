@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Search, ShieldCheck, Plus, Minus } from "lucide-react";
+import { Search, ShieldCheck, Plus, Minus, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { adminListUsers, adminSetUserRole, adminCreditWallet } from "@/server-fns/admin.functions";
+import { adminListUsers, adminSetUserRole, adminCreditWallet, adminUserDetails } from "@/server-fns/admin.functions";
 import { ZexoBalance } from "@/components/ZexoCoin";
 import { withAuthHeaders } from "@/lib/server-fn-auth";
 import { toast } from "sonner";
@@ -91,6 +91,7 @@ function UsersAdmin() {
                     ) : <span className="text-xs text-muted-foreground">User</span>}
                   </td>
                   <td className="p-3 text-right space-x-2 whitespace-nowrap">
+                    <ViewUserDialog userId={u.id} email={u.email} />
                     <WalletDialog user={u} onSave={async (amt, note) => {
                       await credit(await withAuthHeaders({ userId: u.id, amount: amt, note }));
                       toast.success("Wallet updated"); refresh();
@@ -168,6 +169,76 @@ function WalletDialog({ user, onSave }: { user: any; onSave: (amt: number, note:
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={async () => { await onSave(amt, note); setOpen(false); }}>Apply</Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ViewUserDialog({ userId, email }: { userId: string; email: string }) {
+  const details = useServerFn(adminUserDetails);
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    withAuthHeaders({ userId }).then((opts) => details(opts))
+      .then(setData)
+      .catch((e) => toast.error(e?.message ?? "Failed to load"))
+      .finally(() => setLoading(false));
+  }, [open, userId]);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-3.5 w-3.5 mr-1" />View</Button></DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{email}</DialogTitle></DialogHeader>
+        {loading && <div className="py-10 text-center text-muted-foreground text-sm">Loading…</div>}
+        {data && (
+          <div className="space-y-5 text-sm">
+            <section className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-4">
+              <div><div className="text-xs text-muted-foreground">Name</div><div className="font-semibold">{data.profile?.first_name} {data.profile?.last_name}</div></div>
+              <div><div className="text-xs text-muted-foreground">Wallet</div><div className="font-semibold">₹{Number(data.profile?.wallet_balance ?? 0).toLocaleString("en-IN")}</div></div>
+              <div><div className="text-xs text-muted-foreground">Total spent</div><div className="font-semibold">₹{Number(data.profile?.total_spent ?? 0).toLocaleString("en-IN")}</div></div>
+              <div><div className="text-xs text-muted-foreground">Total orders</div><div className="font-semibold">{data.profile?.total_orders ?? 0}</div></div>
+              <div><div className="text-xs text-muted-foreground">WhatsApp</div><div>{data.profile?.whatsapp_number ?? "—"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Calling</div><div>{data.profile?.calling_number ?? "—"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Notification</div><div className={data.profile?.notification_choice === "granted" ? "text-emerald-500 font-semibold" : data.profile?.notification_choice === "declined" ? "text-rose-500" : "text-muted-foreground"}>{data.profile?.notification_choice ?? "not asked"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Push devices</div><div>{data.pushSubscriptions?.length ?? 0}</div></div>
+              <div><div className="text-xs text-muted-foreground">Signup</div><div>{data.profile?.signup_at ? new Date(data.profile.signup_at).toLocaleString() : "—"}</div></div>
+              <div><div className="text-xs text-muted-foreground">Last login</div><div>{data.profile?.last_login_at ? new Date(data.profile.last_login_at).toLocaleString() : "—"}</div></div>
+            </section>
+            <section>
+              <div className="font-bold mb-2">Roles</div>
+              {data.roles?.length ? data.roles.map((r: any, i: number) => (
+                <div key={i} className="rounded bg-muted/30 p-2 text-xs"><b>{r.role}</b> — {Object.keys(r.permissions ?? {}).filter(k => r.permissions[k]).join(", ") || "no perms"}</div>
+              )) : <div className="text-muted-foreground text-xs">User</div>}
+            </section>
+            <section>
+              <div className="font-bold mb-2">Recent orders ({data.orders?.length ?? 0})</div>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {data.orders?.slice(0, 20).map((o: any) => (
+                  <div key={o.id} className="flex justify-between rounded bg-muted/30 p-2 text-xs">
+                    <span>{o.products?.name ?? "—"} <span className="text-muted-foreground">({o.order_type})</span></span>
+                    <span className="font-mono">₹{Number(o.amount).toLocaleString("en-IN")} · {o.status}</span>
+                  </div>
+                ))}
+                {!data.orders?.length && <div className="text-muted-foreground text-xs">No orders</div>}
+              </div>
+            </section>
+            <section>
+              <div className="font-bold mb-2">Wallet history</div>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {data.wallet?.slice(0, 20).map((w: any) => (
+                  <div key={w.id} className="flex justify-between rounded bg-muted/30 p-2 text-xs">
+                    <span>{w.type} — {w.note ?? ""}</span>
+                    <span className={Number(w.amount) >= 0 ? "text-emerald-500" : "text-rose-500"}>₹{Number(w.amount).toLocaleString("en-IN")}</span>
+                  </div>
+                ))}
+                {!data.wallet?.length && <div className="text-muted-foreground text-xs">No transactions</div>}
+              </div>
+            </section>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -7,14 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
+import { Send, BellRing } from "lucide-react";
 import { sendPushNotification } from "@/server-fns/push.functions";
+import { adminForceRePromptNotifications } from "@/server-fns/admin.functions";
 import { withAuthHeaders } from "@/lib/server-fn-auth";
 
 export const Route = createFileRoute("/admin/notifications")({ component: NotifAdmin });
 
 function NotifAdmin() {
   const sendPush = useServerFn(sendPushNotification);
+  const forceRePrompt = useServerFn(adminForceRePromptNotifications);
+  const [reBusy, setReBusy] = useState(false);
   const [list, setList] = useState<any[]>([]);
   const [f, setF] = useState({ title: "", message: "", image_url: "", target: "all" });
   const refresh = () => supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100).then(({ data }) => setList(data ?? []));
@@ -35,6 +38,25 @@ function NotifAdmin() {
         <div><Label>Message</Label><Textarea rows={3} value={f.message} onChange={(e) => setF({ ...f, message: e.target.value })} /></div>
         <div><Label>Image URL (optional)</Label><Input value={f.image_url} onChange={(e) => setF({ ...f, image_url: e.target.value })} /></div>
         <Button onClick={send} className="w-full"><Send className="h-4 w-4 mr-2" />Broadcast to all users</Button>
+        <div className="pt-3 mt-3 border-t border-border">
+          <div className="text-xs text-muted-foreground mb-2">Rotate VAPID version & wipe push subscriptions. All users will see the enable-notifications prompt again.</div>
+          <Button
+            variant="outline"
+            disabled={reBusy}
+            onClick={async () => {
+              if (!confirm("Force ALL users to re-enable notifications? This deletes all current push subscriptions.")) return;
+              setReBusy(true);
+              try {
+                const res = await forceRePrompt(await withAuthHeaders({}));
+                toast.success(`Done — VAPID v${res.version}. Users will be prompted again.`);
+              } catch (e: any) { toast.error(e?.message ?? "Failed"); }
+              finally { setReBusy(false); }
+            }}
+            className="w-full"
+          >
+            <BellRing className="h-4 w-4 mr-2" />{reBusy ? "Working…" : "Force re-prompt all users"}
+          </Button>
+        </div>
       </div>
       <div>
         <h2 className="text-xl font-bold mb-3">Recent</h2>

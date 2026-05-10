@@ -28,16 +28,24 @@ export function PushPermissionPrompt() {
       const { data: ws } = await supabase.from("website_settings").select("vapid_key_version").eq("id", 1).maybeSingle();
       const currentVersion = Number((ws as any)?.vapid_key_version ?? 1);
       setVapidVersion(currentVersion);
-      const lastSeenVersion = Number((profile as any)?.push_prompt_vapid_version ?? 0);
       const browserPerm = Notification.permission;
-      // Re-prompt if VAPID key was rotated since user's last choice
-      if (lastSeenVersion < currentVersion) {
-        setShow(true);
+      const choice = (profile as any)?.notification_choice;
+
+      // If browser already granted, ensure we have a record + active subscription, then never re-prompt
+      if (browserPerm === "granted") {
+        if (choice !== "granted") {
+          await supabase.from("profiles").update({
+            notification_choice: "granted",
+            notification_choice_at: new Date().toISOString(),
+            push_prompt_vapid_version: currentVersion,
+          }).eq("id", user.id);
+          await refresh();
+        }
         return;
       }
-      if (browserPerm === "default" && (profile as any)?.notification_choice !== "declined") {
-        setShow(true);
-      }
+      if (browserPerm === "denied") return;
+      // Only show if default AND user hasn't declined yet
+      if (choice !== "declined") setShow(true);
     })();
   }, [user, profile]);
 
@@ -55,30 +63,36 @@ export function PushPermissionPrompt() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") { await recordChoice("declined"); setShow(false); return; }
-      const { publicKey } = await getKey({ data: undefined as never });
-      if (!publicKey) throw new Error("Push key missing — contact admin");
-      const appKey = urlBase64ToUint8Array(publicKey);
-      await navigator.serviceWorker.register("/sw.js");
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-      if (subscription) {
-        const existingKey = subscription.options?.applicationServerKey;
-        const sameKey = existingKey && new Uint8Array(existingKey as ArrayBuffer).every((b, i) => b === appKey[i]);
-        if (!sameKey) { try { await subscription.unsubscribe(); } catch {} subscription = null; }
-      }
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
-      }
-      const json = subscription.toJSON();
-      const { error } = await supabase.from("push_subscriptions").upsert({
-        user_id: user!.id,
-        endpoint: json.endpoint!,
-        p256dh: json.keys!.p256dh,
-        auth: json.keys!.auth,
-      }, { onConflict: "endpoint" });
-      if (error) throw error;
+      // Persist the granted choice IMMEDIATELY so we never re-prompt even if subscription fails
       await recordChoice("granted");
-      toast.success("Notifications enabled");
+      try {
+        const { publicKey } = await getKey({ data: undefined as never });
+        if (!publicKey) throw new Error("Push key missing — contact admin");
+        const appKey = urlBase64ToUint8Array(publicKey);
+        await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          const existingKey = subscription.options?.applicationServerKey;
+          const sameKey = existingKey && new Uint8Array(existingKey as ArrayBuffer).every((b, i) => b === appKey[i]);
+          if (!sameKey) { try { await subscription.unsubscribe(); } catch {} subscription = null; }
+        }
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+        }
+        const json = subscription.toJSON();
+        const { error } = await supabase.from("push_subscriptions").upsert({
+          user_id: user!.id,
+          endpoint: json.endpoint!,
+          p256dh: json.keys!.p256dh,
+          auth: json.keys!.auth,
+        }, { onConflict: "endpoint" });
+        if (error) throw error;
+        toast.success("Notifications enabled");
+      } catch (subErr: any) {
+        console.warn("Push subscribe failed (browser permission already granted):", subErr);
+        toast.success("Notifications allowed");
+      }
     } catch (error: any) {
       toast.error(error.message || "Notifications could not be enabled");
     } finally {
