@@ -63,30 +63,36 @@ export function PushPermissionPrompt() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") { await recordChoice("declined"); setShow(false); return; }
-      const { publicKey } = await getKey({ data: undefined as never });
-      if (!publicKey) throw new Error("Push key missing — contact admin");
-      const appKey = urlBase64ToUint8Array(publicKey);
-      await navigator.serviceWorker.register("/sw.js");
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-      if (subscription) {
-        const existingKey = subscription.options?.applicationServerKey;
-        const sameKey = existingKey && new Uint8Array(existingKey as ArrayBuffer).every((b, i) => b === appKey[i]);
-        if (!sameKey) { try { await subscription.unsubscribe(); } catch {} subscription = null; }
-      }
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
-      }
-      const json = subscription.toJSON();
-      const { error } = await supabase.from("push_subscriptions").upsert({
-        user_id: user!.id,
-        endpoint: json.endpoint!,
-        p256dh: json.keys!.p256dh,
-        auth: json.keys!.auth,
-      }, { onConflict: "endpoint" });
-      if (error) throw error;
+      // Persist the granted choice IMMEDIATELY so we never re-prompt even if subscription fails
       await recordChoice("granted");
-      toast.success("Notifications enabled");
+      try {
+        const { publicKey } = await getKey({ data: undefined as never });
+        if (!publicKey) throw new Error("Push key missing — contact admin");
+        const appKey = urlBase64ToUint8Array(publicKey);
+        await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          const existingKey = subscription.options?.applicationServerKey;
+          const sameKey = existingKey && new Uint8Array(existingKey as ArrayBuffer).every((b, i) => b === appKey[i]);
+          if (!sameKey) { try { await subscription.unsubscribe(); } catch {} subscription = null; }
+        }
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+        }
+        const json = subscription.toJSON();
+        const { error } = await supabase.from("push_subscriptions").upsert({
+          user_id: user!.id,
+          endpoint: json.endpoint!,
+          p256dh: json.keys!.p256dh,
+          auth: json.keys!.auth,
+        }, { onConflict: "endpoint" });
+        if (error) throw error;
+        toast.success("Notifications enabled");
+      } catch (subErr: any) {
+        console.warn("Push subscribe failed (browser permission already granted):", subErr);
+        toast.success("Notifications allowed");
+      }
     } catch (error: any) {
       toast.error(error.message || "Notifications could not be enabled");
     } finally {
