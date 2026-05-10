@@ -91,6 +91,7 @@ function UsersAdmin() {
                     ) : <span className="text-xs text-muted-foreground">User</span>}
                   </td>
                   <td className="p-3 text-right space-x-2 whitespace-nowrap">
+                    <ViewUserDialog userId={u.id} email={u.email} />
                     <WalletDialog user={u} onSave={async (amt, note) => {
                       await credit(await withAuthHeaders({ userId: u.id, amount: amt, note }));
                       toast.success("Wallet updated"); refresh();
