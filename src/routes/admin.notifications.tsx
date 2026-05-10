@@ -38,6 +38,25 @@ function NotifAdmin() {
         <div><Label>Message</Label><Textarea rows={3} value={f.message} onChange={(e) => setF({ ...f, message: e.target.value })} /></div>
         <div><Label>Image URL (optional)</Label><Input value={f.image_url} onChange={(e) => setF({ ...f, image_url: e.target.value })} /></div>
         <Button onClick={send} className="w-full"><Send className="h-4 w-4 mr-2" />Broadcast to all users</Button>
+        <div className="pt-3 mt-3 border-t border-border">
+          <div className="text-xs text-muted-foreground mb-2">Rotate VAPID version & wipe push subscriptions. All users will see the enable-notifications prompt again.</div>
+          <Button
+            variant="outline"
+            disabled={reBusy}
+            onClick={async () => {
+              if (!confirm("Force ALL users to re-enable notifications? This deletes all current push subscriptions.")) return;
+              setReBusy(true);
+              try {
+                const res = await forceRePrompt(await withAuthHeaders({}));
+                toast.success(`Done — VAPID v${res.version}. Users will be prompted again.`);
+              } catch (e: any) { toast.error(e?.message ?? "Failed"); }
+              finally { setReBusy(false); }
+            }}
+            className="w-full"
+          >
+            <BellRing className="h-4 w-4 mr-2" />{reBusy ? "Working…" : "Force re-prompt all users"}
+          </Button>
+        </div>
       </div>
       <div>
         <h2 className="text-xl font-bold mb-3">Recent</h2>
