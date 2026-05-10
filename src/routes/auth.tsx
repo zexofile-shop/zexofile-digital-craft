@@ -26,12 +26,14 @@ const schema = z.object({
 function AuthPage() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "otp">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
@@ -60,14 +62,49 @@ function AuthPage() {
     } finally { setBusy(false); }
   };
 
+  const sendOtp = async () => {
+    if (!acceptTerms) { toast.error("Please accept the Terms & Privacy Policy to continue"); return; }
+    const er = z.string().trim().email().safeParse(email);
+    if (!er.success) { toast.error("Enter a valid email"); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/`, shouldCreateUser: true },
+      });
+      if (error) throw error;
+      setOtpSent(true);
+      toast.success("OTP sent — check your inbox");
+    } catch (err: any) { toast.error(err.message ?? "Could not send OTP"); }
+    finally { setBusy(false); }
+  };
+
+  const verifyOtp = async () => {
+    if (otpCode.length !== 6) { toast.error("Enter the 6-digit code"); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
+      if (error) throw error;
+      toast.success("Signed in!");
+      nav({ to: "/" });
+    } catch (err: any) { toast.error(err.message ?? "Invalid code"); }
+    finally { setBusy(false); }
+  };
+
   const google = async () => {
     if (!acceptTerms) { toast.error("Please accept the Terms & Privacy Policy to continue"); return; }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
-    });
-    if (error) { toast.error(error.message); setBusy(false); }
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/`,
+      });
+      if ((result as any)?.error) throw (result as any).error;
+      if ((result as any)?.redirected) return;
+      nav({ to: "/" });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Google sign-in failed");
+      setBusy(false);
+    }
   };
 
   return (
