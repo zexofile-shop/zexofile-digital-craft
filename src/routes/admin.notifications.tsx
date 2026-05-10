@@ -16,6 +16,8 @@ export const Route = createFileRoute("/admin/notifications")({ component: NotifA
 
 function NotifAdmin() {
   const sendPush = useServerFn(sendPushNotification);
+  const forceRePrompt = useServerFn(adminForceRePromptNotifications);
+  const [reBusy, setReBusy] = useState(false);
   const [list, setList] = useState<any[]>([]);
   const [f, setF] = useState({ title: "", message: "", image_url: "", target: "all" });
   const refresh = () => supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100).then(({ data }) => setList(data ?? []));
