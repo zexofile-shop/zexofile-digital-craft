@@ -18,16 +18,7 @@ export type ProductCardData = {
   instant_delivery_enabled?: boolean;
 };
 
-// ⚡ Bolt Performance Optimization:
-// Wrapped ProductCard in React.memo() to prevent unnecessary re-renders in list views
-// (e.g. search pages, index page). This reduces re-renders by ~100% when parent state changes.
-export const ProductCard = memo(function ProductCard({
-  p,
-  index = 0,
-}: {
-  p: ProductCardData;
-  index?: number;
-}) {
+export const ProductCard = memo(function ProductCard({ p, index = 0 }: { p: ProductCardData; index?: number }) {
   const finalPrice = p.discount_price ?? p.regular_price;
   const hasDiscount = p.discount_price != null && p.discount_price < p.regular_price;
   const off = hasDiscount ? Math.round((1 - finalPrice / p.regular_price) * 100) : 0;
