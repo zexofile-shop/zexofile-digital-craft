@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Sparkles, Zap, Tag } from "lucide-react";
@@ -17,7 +18,7 @@ export type ProductCardData = {
   instant_delivery_enabled?: boolean;
 };
 
-export function ProductCard({ p, index = 0 }: { p: ProductCardData; index?: number }) {
+export const ProductCard = memo(function ProductCard({ p, index = 0 }: { p: ProductCardData; index?: number }) {
   const finalPrice = p.discount_price ?? p.regular_price;
   const hasDiscount = p.discount_price != null && p.discount_price < p.regular_price;
   const off = hasDiscount ? Math.round((1 - finalPrice / p.regular_price) * 100) : 0;
@@ -91,4 +92,4 @@ export function ProductCard({ p, index = 0 }: { p: ProductCardData; index?: numb
       </Link>
     </motion.div>
   );
-}
+});
