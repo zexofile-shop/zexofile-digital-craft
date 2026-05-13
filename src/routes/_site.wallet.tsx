@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ZexoCoin, ZexoBalance } from "@/components/ZexoCoin";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { createRzpOrder, verifyRzpPayment } from "@/server-fns/payments.functions";
 import { withAuthHeaders } from "@/lib/server-fn-auth";

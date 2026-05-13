@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { getVapidPublicKey } from "@/server-fns/push.functions";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";

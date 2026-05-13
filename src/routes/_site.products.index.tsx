@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { ProductCard, type ProductCardData } from "@/components/ProductCard";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 export const Route = createFileRoute("/_site/products/")({
   component: ProductsPage,

@@ -5,7 +5,7 @@ import { ArrowRight, Zap, ShieldCheck, Sparkles, Code2, Rocket, Star } from "luc
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { ProductCard, type ProductCardData } from "@/components/ProductCard";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 export const Route = createFileRoute("/_site/")({
   component: Landing,

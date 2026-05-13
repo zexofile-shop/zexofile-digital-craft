@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/server-fns/uploads.functions";
 import { withAuthHeaders } from "@/lib/server-fn-auth";
 import { toast } from "sonner";
